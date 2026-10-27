@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Toolkit — Strip Metadata · QR · PDF to PNG</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top">
+    <h1>Toolkit</h1>
+    <p class="sub">Everything runs in your browser. Nothing is uploaded anywhere.</p>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-panel="strip">🧹 Strip Metadata</button>
+      <button class="tab" data-panel="qr">▦ QR Code</button>
+      <button class="tab" data-panel="pdf">📄 PDF → PNGs</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ============ STRIP METADATA ============ -->
+    <section id="strip" class="panel active">
+      <div class="drop" id="stripDrop">
+        <p><strong>Drop files here</strong> or</p>
+        <label class="btn">Choose files
+          <input type="file" id="stripInput" multiple hidden />
+        </label>
+        <p class="hint">
+          Byte-level stripping (no re-encoding, no quality loss):
+          <b>JPEG, PNG, GIF, WebP, MP4/MOV/M4A/M4V/3GP, MP3, WAV, PDF, DOCX/XLSX/PPTX</b>.
+          Other image types the browser can open (BMP, AVIF…) are re-drawn as clean PNGs.
+        </p>
+      </div>
+      <div class="row">
+        <button class="btn" id="stripZip" disabled>Download all (ZIP)</button>
+        <button class="btn ghost" id="stripClear" disabled>Clear</button>
+      </div>
+      <ul id="stripList" class="list"></ul>
+      <details class="note">
+        <summary>Formats the browser can't safely handle (HEIC, RAW, TIFF, MKV, FLAC, …)</summary>
+        <p>For those, use the real thing: <code>exiftool -all= -overwrite_original yourfile.ext</code>
+        — <a href="https://exiftool.org" target="_blank" rel="noopener">exiftool.org</a>.</p>
+      </details>
+    </section>
+
+    <!-- ============ QR ============ -->
+    <section id="qr" class="panel">
+      <div class="grid2">
+        <div class="card">
+          <label>Text or URL
+            <textarea id="qrText" rows="4" placeholder="https://example.com"></textarea>
+          </label>
+          <div class="fields">
+            <label>Size (px)
+              <input type="number" id="qrSize" value="512" min="128" max="2048" step="32" />
+            </label>
+            <label>Margin (modules)
+              <input type="number" id="qrMargin" value="4" min="0" max="16" />
+            </label>
+            <label>Error correction
+              <select id="qrEcc">
+                <option value="L">L (7%)</option>
+                <option value="M" selected>M (15%)</option>
+                <option value="Q">Q (25%)</option>
+                <option value="H">H (30%)</option>
+              </select>
+            </label>
+            <label>Foreground <input type="color" id="qrFg" value="#000000" /></label>
+            <label>Background <input type="color" id="qrBg" value="#ffffff" /></label>
+          </div>
+          <div class="row">
+            <button class="btn" id="qrPng">Download PNG</button>
+            <button class="btn ghost" id="qrSvg">Download SVG</button>
+          </div>
+          <p class="err" id="qrErr"></p>
+        </div>
+        <div class="card center">
+          <canvas id="qrCanvas" width="256" height="256"></canvas>
+          <p class="hint" id="qrEmpty">Type something to generate a code.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PDF -> PNG ============ -->
+    <section id="pdf" class="panel">
+      <div class="card">
+        <div class="drop" id="pdfDrop">
+          <p><strong>Drop a PDF here</strong> or</p>
+          <label class="btn">Choose PDF
+            <input type="file" id="pdfInput" accept="application/pdf,.pdf" hidden />
+          </label>
+        </div>
+
+        <label>…or paste a link
+          <div class="inline">
+            <input type="text" id="pdfUrl" placeholder="https://…/book.pdf   (or a file:/// path)" />
+            <button class="btn" id="pdfUrlGo">Load</button>
+          </div>
+        </label>
+        <p class="hint">
+          Browsers <b>block</b> pages from reading <code>file:///</code> paths, so a pasted
+          <code>file:///G:/…pdf</code> can't be opened directly. Paste it anyway and the app will show
+          you the file name to drag in. Web links work only if the host allows cross-origin downloads
+          (Google Drive viewer links usually don't — download the PDF and drop it in).
+        </p>
+
+        <div class="fields">
+          <label>Quality
+            <select id="pdfScale">
+              <option value="1">1× (fast)</option>
+              <option value="1.5">1.5×</option>
+              <option value="2" selected>2× (sharp)</option>
+              <option value="3">3× (big)</option>
+            </select>
+          </label>
+          <label>Pages (blank = all)
+            <input type="text" id="pdfRange" placeholder="e.g. 1-5, 9, 12-20" />
+          </label>
+        </div>
+        <div class="row">
+          <button class="btn" id="pdfRun" disabled>Convert pages</button>
+          <button class="btn" id="pdfZip" disabled>Download all PNGs (ZIP)</button>
+        </div>
+        <div class="bar" id="pdfBar" hidden><div></div></div>
+        <p class="hint" id="pdfStatus"></p>
+      </div>
+      <div id="pdfGrid" class="thumbs"></div>
+    </section>
+  </main>
+
+  <footer>Made to be hosted on GitHub Pages · no tracking · no uploads</footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
